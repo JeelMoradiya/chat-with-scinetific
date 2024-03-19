@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Text Extractor & Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 800px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 20px;
+            text-align: center;
+            background-color: #4CAF50;
+            color: #fff;
+        }
+
+        .form-container {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .form-container form {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .form-container input[type="file"] {
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .form-container button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .form-container button:hover {
+            background-color: #45a049;
+        }
+
+        .result-container {
+            padding: 20px;
+        }
+
+        .extracted-text,
+        .summarized-text {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #dff0d8;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            overflow-y: auto;
+            max-height: 200px;
+        }
+
+        .chat-box {
+            overflow-y: auto;
+            max-height: 200px;
+            padding: 10px;
+        }
+
+        .user-message,
+        .assistant-message {
+            max-width: 70%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .user-message {
+            background-color: #4CAF50;
+            color: #fff;
+            align-self: flex-end;
+        }
+
+        .assistant-message {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            align-self: flex-start;
+        }
+
+        .input-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        button#send-button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button#send-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+
+    <!-- Add this script section at the end of your HTML head -->
+
+</head>
+
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>File Text Extractor & Chat</h1>
+        </div>
+
+        <div class="form-container">
+            {% if error %}
+            <p style="color: red;">{{ error }}</p>
+            {% endif %}
+
+            <form id="fileUploadForm" enctype="multipart/form-data">
+                <input type="file" name="file" id="fileInput" accept=".pdf" required>
+                <button type="button" onclick="uploadFile()">Upload & Process</button>
+            </form>
+        </div>
+
+        <div class="result-container">
+            <div class="extracted-text" id="extracted-text">
+                <h2>Extracted Text:</h2>
+                <p id="extractedTextContent"></p>
+            </div>
+
+            <div class="summarized-text" id="summarized-text">
+                <h2>Summarized Text:</h2>
+                <p id="modelResponseContent"></p>
+            </div>
+        </div>
+
+
+
+        <!-- Add the chat-box div here -->
+        <div class="chat-box" id="chat-box">
+            <!-- Chat messages will be appended here -->
+            {% if chatbot_response %}
+            <div class="chat-message">
+                <p>{{ chatbot_response }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Add this line where you want to display the extracted text -->
+        <div id="extracted-text" style="display: none;">{{ extracted_text }}</div>
+
+        <div class="input-container">
+            <!-- <form> -->
+                <input type="text" id="chat-input" placeholder="Type your message...">
+                <button id="send-button" onclick="sendMessage()">Send</button>
+            <!-- </form> -->
+        </div>
+    </div>
+
+    <script>
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            let file = fileInput.files[0];
+
+            var formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/', {
+                method: 'POST',
+                body: formData,
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Network response was not ok, status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Server response:', data);
+
+                    // Display the extracted text
+                    var extractedTextContent = document.getElementById('extractedTextContent');
+                    extractedTextContent.textContent = data.extracted_text;
+
+                    // Display the model response
+                    var modelResponseContent = document.getElementById('modelResponseContent');
+                    modelResponseContent.textContent = data.model_response;
+
+                    // Optionally, you can trigger the sendMessage function here if needed.
+                    // sendMessage();
+                })
+                .catch(error => {
+                    console.error('Error:', error.message);
+                });
+        }
+    </script>
+
+
+    <script>
+        function sendMessage() {
+            console.log('sendMessage function called');
+
+            var userInput = document.getElementById('chat-input').value;
+            var chatBox = document.getElementById('chat-box');
+
+            var userMessage = document.createElement('div');
+            userMessage.className = 'user-message';
+            userMessage.innerHTML = '<p>' + userInput + '</p>';
+            chatBox.appendChild(userMessage);
+
+            document.getElementById('chat-input').value = '';
+
+            var formData = new FormData();
+            formData.append('user_question', userInput);  // Append user_question correctly
+
+            // Log the FormData for debugging
+            for (var pair of formData.entries()) {
+                console.log(pair[0] + ', ' + pair[1]);
+            }
+
+            fetch('/', {
+                method: 'POST',
+                body: formData,
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Server response:', data);
+
+                    var chatMessage = document.createElement('div');
+                    chatMessage.className = 'assistant-message';
+                    chatMessage.innerHTML = '<p>' + data.model_response + '</p>';
+                    chatBox.appendChild(chatMessage);
+
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+    </script>
+
+</body>
+
+</html>
